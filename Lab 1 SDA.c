@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
+#include <stdlib.h>
 
 void remove_newline(char* str) {
 	int len = strlen(str);
@@ -18,26 +19,53 @@ typedef struct {
 	int date;
 } Employee;
 
-Employee employees[10];
-
+Employee* employees = NULL;
 int kolvo = 0;
+int capacity = 0;
 
-void add_employee() {
-	if (kolvo >= 10) {
-		printf("Максимум 10 сотрудников!\n");
+
+void expand_array(int additional_elements) {
+	int new_capacity = capacity + additional_elements;
+
+	Employee* new_employees = (Employee*)malloc(new_capacity * sizeof(Employee));
+
+	if (new_employees == NULL) {
+		printf("Ошибка выделения памяти!\n");
 		return;
 	}
+
+	for (int i = 0; i < kolvo; i++) {
+		new_employees[i] = employees[i];
+	}
+
+	if (employees != NULL) {
+		free(employees);
+	}
+
+	employees = new_employees;
+	capacity = new_capacity;
+
+	printf("Массив расширен! Новая вместимость: %d\n", capacity);
+}
+
+
+void add_employee() {
+	if (kolvo >= capacity) {
+		printf("Массив заполнен, расширяю на 5 мест...\n");
+		expand_array(5);
+	}
+
 	printf("Режим добавления сотрудника\n");
 	getchar();
 
 	printf("Введите ФИО сотрудника: ");
 	fgets(employees[kolvo].full_name, 50, stdin);
 	remove_newline(employees[kolvo].full_name);
-	
+
 	printf("Введите позицию сотрудника: ");
 	fgets(employees[kolvo].position, 50, stdin);
 	remove_newline(employees[kolvo].position);;
-	
+
 	printf("Введите зарплату сотрудника: ");
 	scanf("%f", &employees[kolvo].salary);
 	getchar();
@@ -45,14 +73,13 @@ void add_employee() {
 	printf("Введите отдел сотрудника: ");
 	fgets(employees[kolvo].dpt, 50, stdin);
 	remove_newline(employees[kolvo].dpt);
-	
+
 	printf("Введите дату наёма сотрудника(удобным вам форматом): ");
 	scanf("%d", &employees[kolvo].date);
 
 	kolvo++;
-	
-	printf("\nСотрудник добавлен\n");
 
+	printf("\nСотрудник добавлен\n");
 }
 
 
@@ -79,7 +106,7 @@ void edit_employee() {
 		return;
 	}
 	int index = 0;
-	printf("Введите индекс сотрудника (0 - 10): ");
+	printf("Введите индекс сотрудника (0 - %d): ", kolvo - 1);
 	scanf("%d", &index);
 
 	if (index < 0 || index >= kolvo) {
@@ -143,131 +170,367 @@ void edit_employee() {
 
 	default:
 		printf("Неверный выбор\n");
-
-
 	}
-
 }
 
 
-	void search_employee() {
-		if (kolvo == 0) {
-			printf("\nНикого нет!\n");
-			return;
-		}
+void search_employee() {
+	if (kolvo == 0) {
+		printf("\nНикого нет!\n");
+		return;
+	}
 
-		int choice;
-		printf("\nПоиск сотрудника\n");
-		printf("Искать по:\n");
-		printf("1. ФИО\n");
-		printf("2. Отделу\n");
-		printf("3. Должности\n");
+	int choice;
+	printf("\nПоиск сотрудника\n");
+	printf("Искать по:\n");
+	printf("1. ФИО\n");
+	printf("2. Отделу\n");
+	printf("3. Должности\n");
+	printf("Ваш выбор: ");
+	scanf("%d", &choice);
+	getchar();
+
+	char search_term[100];
+	int found = 0;
+
+	switch (choice) {
+	case 1:
+		printf("Введите ФИО (или часть): ");
+		fgets(search_term, 100, stdin);
+		remove_newline(search_term);
+
+		printf("\nРезультаты поиска:\n");
+		for (int i = 0; i < kolvo; i++) {
+			if (strstr(employees[i].full_name, search_term) != NULL) {
+				printf("\n[%d]\n", i);
+				printf("ФИО: %s\n", employees[i].full_name);
+				printf("Должность: %s\n", employees[i].position);
+				printf("Зарплата: %f\n", employees[i].salary);
+				printf("Отдел: %s\n", employees[i].dpt);
+				found++;
+			}
+		}
+		break;
+
+	case 2:
+		printf("Введите название отдела: ");
+		fgets(search_term, 100, stdin);
+		remove_newline(search_term);
+
+		printf("\nРезультаты поиска:\n");
+		for (int i = 0; i < kolvo; i++) {
+			if (strstr(employees[i].dpt, search_term) != NULL) {
+				printf("\n[%d]\n", i);
+				printf("ФИО: %s\n", employees[i].full_name);
+				printf("Должность: %s\n", employees[i].position);
+				printf("Зарплата: %f\n", employees[i].salary);
+				found++;
+			}
+		}
+		break;
+
+	case 3:
+		printf("Введите должность: ");
+		fgets(search_term, 100, stdin);
+		remove_newline(search_term);
+
+		printf("\nРезультаты поиска:\n");
+		for (int i = 0; i < kolvo; i++) {
+			if (strstr(employees[i].position, search_term) != NULL) {
+				printf("\n[%d]\n", i);
+				printf("ФИО: %s\n", employees[i].full_name);
+				printf("Зарплата: %f\n", employees[i].salary);
+				printf("Отдел: %s\n", employees[i].dpt);
+				found++;
+			}
+		}
+		break;
+
+	default:
+		printf("Неверный выбор!\n");
+		return;
+	}
+
+	if (found == 0) {
+		printf("\nНичего не найдено.\n");
+	}
+	else {
+		printf("\nНайдено: %d сотрудников\n", found);
+	}
+}
+
+
+void remove_last_employee() {
+	if (kolvo == 0) {
+		printf("\nМассив пуст, удалять нечего!\n");
+		return;
+	}
+
+	kolvo--;
+
+	int new_capacity = kolvo;
+
+	if (new_capacity == 0) {
+		free(employees);
+		employees = NULL;
+		capacity = 0;
+		printf("Последний сотрудник удален! Массив очищен.\n");
+		return;
+	}
+
+	Employee* new_employees = (Employee*)malloc(new_capacity * sizeof(Employee));
+
+	if (new_employees == NULL) {
+		printf("Ошибка выделения памяти!\n");
+		kolvo++;
+		return;
+	}
+
+	for (int i = 0; i < kolvo; i++) {
+		new_employees[i] = employees[i];
+	}
+
+	free(employees);
+	employees = new_employees;
+	capacity = new_capacity;
+
+	printf("Последний сотрудник удален! (осталось: %d/%d)\n", kolvo, capacity);
+}
+
+
+void clear_all_memory() {
+	if (employees != NULL) {
+		free(employees);
+		employees = NULL;
+	}
+	kolvo = 0;
+	capacity = 0;
+	printf("Вся память освобождена!\n");
+}
+
+
+void manual_expand() {
+	int add_count = 0;
+	printf("\nНа сколько элементов расширить массив? ");
+	scanf("%d", &add_count);
+
+	if (add_count <= 0) {
+		printf("Неверное количество!\n");
+		return;
+	}
+
+	expand_array(add_count);
+}
+
+
+void sort_employees() {
+	if (kolvo == 0) {
+		printf("\nМассив пуст, сортировать нечего!\n");
+		return;
+	}
+
+	int choice = 0;
+	printf("\n📊 Сортировка сотрудников\n");
+	printf("Сортировать по:\n");
+	printf("1. ФИО (по алфавиту)\n");
+	printf("2. Зарплате (по возрастанию)\n");
+	printf("3. Дате найма (по возрастанию)\n");
+	printf("Ваш выбор: ");
+	scanf("%d", &choice);
+
+	for (int i = 0; i < kolvo - 1; i++) {
+		for (int j = 0; j < kolvo - i - 1; j++) {
+			int swap_needed = 0;
+
+			switch (choice) {
+			case 1: 
+				if (strcmp(employees[j].full_name, employees[j + 1].full_name) > 0) {
+					swap_needed = 1;
+				}
+				break;
+
+			case 2: 
+				if (employees[j].salary > employees[j + 1].salary) {
+					swap_needed = 1;
+				}
+				break;
+
+			case 3: 
+				if (employees[j].date > employees[j + 1].date) {
+					swap_needed = 1;
+				}
+				break;
+
+			default:
+				printf("Неверный выбор!\n");
+				return;
+			}
+
+			
+			if (swap_needed) {
+				Employee temp = employees[j];
+				employees[j] = employees[j + 1];
+				employees[j + 1] = temp;
+			}
+		}
+	}
+
+	printf("\nМассив отсортирован!\n");
+}
+
+
+void insert_at_position() {
+	if (kolvo >= capacity) {
+		printf("Массив заполнен, расширяю на 5 мест...\n");
+		expand_array(5);
+	}
+
+	int position = 0;
+	printf("\nВставка сотрудника на указанную позицию\n");
+	printf("Введите позицию (0-%d): ", kolvo);
+	scanf("%d", &position);
+
+	if (position < 0 || position > kolvo) {
+		printf("Неверная позиция!\n");
+		return;
+	}
+
+	
+	for (int i = kolvo; i > position; i--) {
+		employees[i] = employees[i - 1];
+	}
+
+	
+	getchar();
+
+	printf("\nВвод данных для позиции [%d]:\n", position);
+	printf("Введите ФИО сотрудника: ");
+	fgets(employees[position].full_name, 50, stdin);
+	remove_newline(employees[position].full_name);
+
+	printf("Введите позицию сотрудника: ");
+	fgets(employees[position].position, 50, stdin);
+	remove_newline(employees[position].position);
+
+	printf("Введите зарплату сотрудника: ");
+	scanf("%f", &employees[position].salary);
+	getchar();
+
+	printf("Введите отдел сотрудника: ");
+	fgets(employees[position].dpt, 50, stdin);
+	remove_newline(employees[position].dpt);
+
+	printf("Введите дату наёма сотрудника: ");
+	scanf("%d", &employees[position].date);
+
+	kolvo++;
+
+	printf("\nСотрудник вставлен на позицию %d! (всего: %d)\n", position, kolvo);
+}
+
+
+
+void delete_by_index() {
+	if (kolvo == 0) {
+		printf("\nМассив пуст, удалять нечего!\n");
+		return;
+	}
+
+	int index = 0;
+	printf("\nУдаление сотрудника по индексу\n");
+	printf("Введите индекс (0-%d): ", kolvo - 1);
+	scanf("%d", &index);
+
+	if (index < 0 || index >= kolvo) {
+		printf("Неверный индекс!\n");
+		return;
+	}
+
+	printf("\nУдаляется: %s\n", employees[index].full_name);
+
+	
+	for (int i = index; i < kolvo - 1; i++) {
+		employees[i] = employees[i + 1];
+	}
+
+	kolvo--;
+	printf("Сотрудник удален! (осталось: %d/%d)\n", kolvo, capacity);
+}
+
+
+int main() {
+	setlocale(LC_ALL, ".UTF8");
+
+	employees = (Employee*)malloc(3 * sizeof(Employee));
+	if (employees == NULL) {
+		printf("Ошибка выделения начальной памяти!\n");
+		return 1;
+	}
+	capacity = 3;
+	printf("Начальная вместимость: %d элементов\n\n", capacity);
+
+	int choice;
+
+	while (1) {
+		printf("\n--- Текущее: %d/%d ---\n", kolvo, capacity);
+
+		printf("1 - Добавление сотрудника\n");
+		printf("2 - Показ всех сотрудников\n");
+		printf("3 - Редактирование информации о сотруднике\n");
+		printf("4 - Поиск сотрудника по критерию\n");
+		printf("5 - Удалить последнего сотрудника\n");
+		printf("6 - Расширить массив вручную\n");
+		printf("7 - Очистить всю память\n");
+		printf("8 - Сортировка массива\n");
+		printf("9 - Вставить сотрудника на позицию\n");
+		printf("10 - Удалить сотрудника по индексу\n");
+
+		printf("0 - Выход из программы\n");
 		printf("Ваш выбор: ");
 		scanf("%d", &choice);
-		getchar();
-
-		char search_term[100];
-		int found = 0;
 
 		switch (choice) {
 		case 1:
-			printf("Введите ФИО (или часть): ");
-			fgets(search_term, 100, stdin);
-			remove_newline(search_term);
-
-			printf("\nРезультаты поиска:\n");
-			for (int i = 0; i < kolvo; i++) {
-				if (strstr(employees[i].full_name, search_term) != NULL) {
-					printf("\n[%d]\n", i);
-					printf("ФИО: %s\n", employees[i].full_name);
-					printf("Должность: %s\n", employees[i].position);
-					printf("Зарплата: %f\n", employees[i].salary);
-					printf("Отдел: %s\n", employees[i].dpt);
-					found++;
-				}
-			}
+			add_employee();
 			break;
-
 		case 2:
-			printf("Введите название отдела: ");
-			fgets(search_term, 100, stdin);
-			remove_newline(search_term);
-
-			printf("\nРезультаты поиска:\n");
-			for (int i = 0; i < kolvo; i++) {
-				if (strstr(employees[i].dpt, search_term) != NULL) {
-					printf("\n[%d]\n", i);
-					printf("ФИО: %s\n", employees[i].full_name);
-					printf("Должность: %s\n", employees[i].position);
-					printf("Зарплата: %f\n", employees[i].salary);
-					found++;
-				}
-			}
+			all_employees();
 			break;
-
 		case 3:
-			printf("Введите должность: ");
-			fgets(search_term, 100, stdin);
-			remove_newline(search_term);
-
-			printf("\nРезультаты поиска:\n");
-			for (int i = 0; i < kolvo; i++) {
-				if (strstr(employees[i].position, search_term) != NULL) {
-					printf("\n[%d]\n", i);
-					printf("ФИО: %s\n", employees[i].full_name);
-					printf("Зарплата: %f\n", employees[i].salary);
-					printf("Отдел: %s\n", employees[i].dpt);
-					found++;
-				}
-			}
+			edit_employee();
 			break;
+		case 4:
+			search_employee();
+			break;
+		case 5:
+			remove_last_employee();
+			break;
+		case 6:
+			manual_expand();
+			break;
+		case 7:
+			clear_all_memory();
+			break;
+		case 8:
+			sort_employees();
+			break;
+		case 9:
+			insert_at_position();
+			break;
+		case 10:
+			delete_by_index();
+			break;
+
+		case 0:
+			printf("\nОчистка памяти перед выходом...\n");
+			clear_all_memory();
+			printf("\nВыход.\n");
+			return 0;
 
 		default:
-			printf("Неверный выбор!\n");
-			return;
-		}
-
-		if (found == 0) {
-			printf("\nНичего не найдено.\n");
-		}
-		else {
-			printf("\nНайдено: %d сотрудников\n", found);
+			printf("\nНеверный выбор!\n");
 		}
 	}
 
-	int main() {
-		setlocale(LC_ALL, ".UTF8");
-		int choice;
-		while (1) {
-			printf("1 - Добавление сотрудника\n");
-			printf("2 - Показ всех сотрудников\n");
-			printf("3 - Редактирование информации о сотруднике\n");
-			printf("4 - Поиск сотрудника по критерию\n");
-			printf("0 - Выход из программы\n");
-			printf("Ваш выбор: ");
-			scanf("%d", &choice);
-
-			switch (choice) {
-			case 1:
-				add_employee();
-				break;
-			case 2:
-				all_employees();
-				break;
-			case 3:
-				edit_employee();
-				break;
-			case 4:
-				search_employee();
-				break;
-			case 0:
-				printf("\nВыход.\n");
-				return 0;
-			default:
-				printf("\nНеверный выбор!\n");
-			}
-		}
-
-		return 0;
-	}
-
+	return 0;
+}
